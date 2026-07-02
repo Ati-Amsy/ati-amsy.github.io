@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VJ Password</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 15px; color: #333; }
+        .card { background: white; border-radius: 25px; padding: 25px 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); max-width: 400px; margin: auto; position: relative; }
+        .lang-switcher { position: absolute; top: 15px; right: 20px; font-size: 12px; font-weight: bold; color: #00ACC1; cursor: pointer; border: 1px solid #00ACC1; padding: 4px 10px; border-radius: 12px; background: white; }
+        h1 { color: #00ACC1; font-size: 22px; margin: 0; padding-right: 50px; text-align: left; }
+        .section-title { font-size: 11px; font-weight: bold; color: #888; text-transform: uppercase; margin-top: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px; text-align: left; }
+        .today-box { background: #e0f7fa; border-radius: 18px; padding: 15px; margin: 15px 0; border: 1px solid #b2ebf2; }
+        .today-pwd { font-size: 56px; font-weight: bold; color: #d32f2f; margin: 5px 0; letter-spacing: 4px; }
+        input { font-size: 16px; padding: 12px; border-radius: 10px; border: 1px solid #00ACC1; width: 85%; margin: 10px 0; outline: none; }
+        .btn { background: #00ACC1; color: white; border: none; padding: 16px; border-radius: 12px; font-size: 14px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; }
+
+        #login-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: #f0f2f5; z-index: 100; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 85%; max-width: 320px; }
+    </style>
+</head>
+<body>
+
+<div id="login-overlay">
+    <div class="login-card">
+        <h2 id="ui-login-title" style="color:#00ACC1; margin-top:0;">Belépés</h2>
+        <input type="password" id="app-password" placeholder="Jelszó..." autocomplete="current-password">
+        <button class="btn" onclick="login()" id="ui-login-btn">BELÉPÉS</button>
+        <p id="login-error" style="color:red; font-size:11px; display:none; margin-top:10px;">Hibás jelszó!</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="lang-switcher" onclick="toggleLang()" id="lang-btn">EN</div>
+    <h1 id="ui-title">VJ1000 napi jelszó</h1>
+    <div style="font-size:10px; color:#aaa; text-align:left; margin-bottom:10px;">v3.2 - Attila Gál</div>
+
+    <div class="section-title" id="ui-section-today">Mai aktuális kód</div>
+    <div class="today-box">
+        <div id="today-date" style="font-size:17px; font-weight:bold; color:#006064;">----. --. --.</div>
+        <div id="today-pwd" class="today-pwd">---</div>
+    </div>
+
+    <div class="section-title" id="ui-section-search">Keresés dátum alapján</div>
+    <div style="padding: 10px 0;">
+        <input type="date" id="date-picker" onchange="updateDisplay()" style="width:85%;">
+        <div id="picked-pwd" style="font-size:32px; font-weight:bold; color:#444; margin-top:10px;">---</div>
+    </div>
+
+    <button id="refresh-btn" class="btn" onclick="fetchGist()">FRISSÍTÉS</button>
+    <div style="font-size:11px; color:#888; margin-top:20px;">
+        <span id="ui-sync-label">Utolsó szinkronizálás:</span> <br>
+        <strong id="last-sync">---</strong>
+    </div>
+</div>
+
+<script>
+    // --- TITKOSÍTOTT KONFIGURÁCIÓ ---
+    const LOCKED_CONFIG = 'U2FsdGVkX19zAGfzfSVh8+7+ae40LVKssZpimWYiDnaYEo4WeJJJFMR8+kJqE94cbZMeAmehAfwtYT0V0NXnOWIPlMYIe3fTJeWgW7AeH1igXss1Y2CFpqExDeS6E5iNGtKdDI26BW/NQdStSB5/jaOyTcgyUK8tAIT2eIfobpNEHNI69BTNCs7ySjFuit4+1BdBM0+gmouJ5YSCuvstFgSdFWM+J/Le5ElHjIpxWw9A2i9Mre6evkiFkB58ezWa';
+    // ---------------------------------------------------
+
+    let GIST_URL = '';
+    let MASTER_KEY = '';
+
+    const langData = {
+        hu: { btn: "EN", loginTitle: "Bejelentkezés", loginBtn: "BELÉPÉS", title: "VJ1000 napi jelszó", sectionToday: "Mai aktuális kód", sectionSearch: "Keresés dátum alapján", refreshBtn: "FRISSÍTÉS", syncLabel: "Utolsó szinkronizálás:", error: "Hibás jelszó!", noData: "Nincs adat" },
+        en: { btn: "HU", loginTitle: "Login", loginBtn: "LOGIN", title: "VJ1000 daily codes", sectionToday: "Today's current code", sectionSearch: "Search by date", refreshBtn: "REFRESH", syncLabel: "Last synchronization:", error: "Wrong password!", noData: "No data" }
+    };
+
+    let currentLang = localStorage.getItem('vj_lang') || 'hu';
+
+    function login() {
+        const pass = document.getElementById('app-password').value;
+        if (!LOCKED_CONFIG) { alert("Hiba: Nincs konfiguráció!"); return; }
+
+        try {
+            const bytes = CryptoJS.AES.decrypt(LOCKED_CONFIG, pass);
+            const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+            if (!decryptedData) throw new Error();
+            const decrypted = JSON.parse(decryptedData);
+
+            GIST_URL = decrypted.url;
+            MASTER_KEY = decrypted.key;
+
+            localStorage.setItem('vj_auth_pass', pass);
+            document.getElementById('login-overlay').style.display = 'none';
+            fetchGist();
+        } catch (e) {
+            document.getElementById('login-error').style.display = 'block';
+        }
+    }
+
+    async function fetchGist() {
+        if (!GIST_URL) return;
+        try {
+            const res = await fetch(GIST_URL + '?t=' + new Date().getTime());
+            const text = await res.text();
+            localStorage.setItem('vj_data', text);
+            localStorage.setItem('vj_last_sync', new Date().toLocaleString(currentLang==='hu'?'hu-HU':'en-US'));
+            updateDisplay();
+        } catch (e) { console.error("Sync error"); }
+    }
+
+    function decrypt(cipher) {
+        try {
+            const bytes = CryptoJS.AES.decrypt(cipher, MASTER_KEY);
+            return bytes.toString(CryptoJS.enc.Utf8) || null;
+        } catch (e) { return null; }
+    }
+
+    function updateDisplay() {
+        const data = localStorage.getItem('vj_data');
+        if (!data || !MASTER_KEY) return;
+
+        const plain = decrypt(data);
+        if (!plain) return;
+
+        const now = new Date();
+        const todayStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+        document.getElementById('today-date').innerText = now.toLocaleDateString(currentLang==='hu'?'hu-HU':'en-US');
+
+        const pwd = extractPwd(plain, todayStr);
+        document.getElementById('today-pwd').innerText = pwd || "---";
+        document.getElementById('today-pwd').style.color = pwd ? "#d32f2f" : "#ccc";
+
+        const picker = document.getElementById('date-picker').value;
+        if (picker) {
+            const p = picker.split('-');
+            document.getElementById('picked-pwd').innerText = extractPwd(plain, `${p[2]}/${p[1]}/${p[0]}`) || langData[currentLang].noData;
+        }
+        document.getElementById('last-sync').innerText = localStorage.getItem('vj_last_sync') || "---";
+    }
+
+    function extractPwd(content, date) {
+        let idx = content.indexOf(date);
+        if (idx === -1) {
+            const p = date.split("/");
+            idx = content.indexOf(`${p[1]}/${p[0]}/${p[2]}`);
+        }
+        if (idx === -1) return null;
+        const m = content.substring(idx + 10, idx + 115).match(/(\d{6})/);
+        return m ? m[0] : null;
+    }
+
+    function toggleLang() {
+        currentLang = currentLang === 'hu' ? 'en' : 'hu';
+        localStorage.setItem('vj_lang', currentLang);
+        applyLanguage();
+    }
+
+    function applyLanguage() {
+        const d = langData[currentLang];
+        document.getElementById('lang-btn').innerText = d.btn;
+        document.getElementById('ui-login-title').innerText = d.loginTitle;
+        document.getElementById('ui-login-btn').innerText = d.loginBtn;
+        document.getElementById('ui-title').innerText = d.title;
+        document.getElementById('ui-section-today').innerText = d.sectionToday;
+        document.getElementById('ui-section-search').innerText = d.sectionSearch;
+        document.getElementById('refresh-btn').innerText = d.refreshBtn;
+        document.getElementById('ui-sync-label').innerText = d.syncLabel;
+        updateDisplay();
+    }
+
+    window.onload = () => {
+        applyLanguage();
+        const savedPass = localStorage.getItem('vj_auth_pass');
+        if (savedPass && LOCKED_CONFIG) {
+            document.getElementById('app-password').value = savedPass;
+            login();
+        }
+    };
+</script>
+</body>
+</html>
