@@ -260,7 +260,7 @@
 
 <script>
     // --- TITKOSÍTOTT KONFIGURÁCIÓK (IDE MÁSOLD A GENERÁLT KÓDOKAT) ---
-    const CONFIG_A = 'U2FsdGVkX1882Lwh65pT+E9ZgeDzUwmsH879FNlBaCPIwAN/ZYnIwoehrDTcdLbaRqKTGQgVkYC7CQOlBIA5ZUTBiikl3VSp9KHL19+B0q7AvyQjg41CD57eAUkoXZRfstpNBtHegfQ+4ukw8GGRthOCy/7ilPVrU8wLX0hNhhbeA0h2Sa3LFddXSb4hWl3fPJVduwxLdDjJvNvNGnYBMpW6D7NeKOkL+/mVKzFZP2xdV/bYnfK7FLlvtT4YLyFyKaVYjX1lWq9IlVvEDR0zKx4EQSM+8n+hKV5fxKqLvNZbKpxKXsqKdlQ7J1EyXKx2/VYjLZ0yc0Q==';
+    const CONFIG_A = 'U2FsdGVkX1882Lwh65pT+E9ZgeDzUwmsH879FNlBaCPIwAN/ZYnIwoehrDTcdLbaRqKTGQgVkYC7CQOlBIA5ZUTBiikl3VSp9KHL19+B0q7AvyQjg41CD57eAUkoXZRfstpNBtHegfQ+4ukw8GGRthOCy/7ilPVrU8wLX0hNhhbeA0h2SaOWg+QOFC7NTJZTwazY+v8o/yA9TG8eDqWgQJ3or6WGwdXQ3MIouKwj+Sqq8keQiD7TwafYshjDa7vZ29r+ULxP0Mx5W8UYyGz/xsqdK52AaOGzT0BWyWwT6JU=';
     const CONFIG_U = 'U2FsdGVkX1/J3j0DSqwF2lcx0mX3dnLJuBKutI0A19o3i1rXMn69klOwfmqvX0KHc4BF4es+5U1A1aLcp22y2e+gO8DHqLOx32b0lyYqdsIR6fw6vUYE4Xc6QEUB1uTJ4wfjqkLVIjNLv9qE8M/O84R14zQfpuUo06QBNzc+nXE=';
     // ---------------------------------------------------------------
 
@@ -297,7 +297,7 @@
     }
 
     function login() {
-        const pass = document.getElementById('app-password').value.trim();
+        const pass = document.getElementById('app-password').value;
         if (!CONFIG_A) { alert("Nincs konfiguráció!"); return; }
 
         let success = false;
