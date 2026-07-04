@@ -260,16 +260,17 @@
 
 <script>
     // --- TITKOSÍTOTT KONFIGURÁCIÓK (IDE MÁSOLD A GENERÁLT KÓDOKAT) ---
-    const CONFIG_A = 'U2FsdGVkX1882Lwh65pT+E9ZgeDzUwmsH879FNlBaCPIwAN/ZYnIwoehrDTcdLbaRqKTGQgVkYC7CQOlBIA5ZUTBiikl3VSp9KHL19+B0q7AvyQjg41CD57eAUkoXZRfstpNBtHegfQ+4ukw8GGRthOCy/7ilPVrU8wLX0hNhhbeA0h2SaOWg+QOFC7NTJZTwazY+v8o/yA9TG8eDqWgQJ3or6WGwdXQ3MIouKwj+Sqq8keQiD7TwafYshjDa7vZ29r+ULxP0Mx5W8UYyGz/xsqdK52AaOGzT0BWyWwT6JU=';
-    const CONFIG_U = 'U2FsdGVkX1/J3j0DSqwF2lcx0mX3dnLJuBKutI0A19o3i1rXMn69klOwfmqvX0KHc4BF4es+5U1A1aLcp22y2e+gO8DHqLOx32b0lyYqdsIR6fw6vUYE4Xc6QEUB1uTJ4wfjqkLVIjNLv9qE8M/O84R14zQfpuUo06QBNzc+nXE=';
+    const CONFIG_A = 'U2FsdGVkX18TruVIgZz2DJGCiHuy1WrSrJTbe0clQDFCbQoRVMNWJjW4l0MnB0XQJ1b4cHK33ZIo6HLZ2LF00b5MYxV9DQYGaGRd/dx/8xabYwLh9RhmaDBdFnqh+Tfa2P2JOmb23I2akBuQ1hhD6nYSAY6ddxG+uOqbqpwnhs8DMCX3lRxYNQFuoMxpHqlDg7B2mCHJqkjqG6EBW/g2I0dJXNMwZE1TcqrDHdOUBPhRmkNApyU33FEuu2gH+h2MmaqNcAYmmLcGrBaTto2D53u6b6ZJKy8wh6SNDTKGafQ=';
+    const CONFIG_U = 'U2FsdGVkX18GhFTIJoEqN/FrTR97mfvyAyIMxQlHjh1rmnN7w7HfyoOP0ctKo6Ea6Q7UH7+dowpppNRihMG3wiv4aVAfqmMe/O/4WPM6hLqPF/NfbuRBxOsrplXP7MrWm8y+j2osoW8a5Id0LElyPQ==';
     // ---------------------------------------------------------------
 
     let activeConfig = null;
     let isAdmin = false;
+    let failedAttempts = 0;
 
     const langData = {
-        hu: { btn: "EN", loginTitle: "Belépés", loginBtn: "BELÉPÉS", title: "VJ1000 napi jelszó", author: "v4.0 - Gál Attila", searchLabel: "Keresés:", refreshBtn: "FRISSÍTÉS", adminTitle: "Adminisztráció", adminMsg: "Jelszavak szerkesztése (DD/MM/YYYY formátum):", saveBtn: "MENTÉS A GIST-RE", syncing: "Szinkronizálás..." },
-        en: { btn: "HU", loginTitle: "Login", loginBtn: "LOGIN", title: "VJ1000 daily codes", author: "v4.0 - by Attila Gal", searchLabel: "Search:", refreshBtn: "REFRESH", adminTitle: "Administration", adminMsg: "Edit passwords (DD/MM/YYYY format):", saveBtn: "SAVE TO GIST", syncing: "Syncing..." }
+        hu: { btn: "EN", loginTitle: "Belépés", loginBtn: "BELÉPÉS", title: "VJ1000 napi jelszó", author: "v4.0 - Gál Attila", searchLabel: "Keresés:", refreshBtn: "FRISSÍTÉS", adminTitle: "Adminisztráció", adminMsg: "Jelszavak szerkesztése (DD/MM/YYYY formátum):", saveBtn: "MENTÉS A GIST-RE", syncing: "Szinkronizálás...", pickedPrefix: "" },
+        en: { btn: "HU", loginTitle: "Login", loginBtn: "LOGIN", title: "VJ1000 daily codes", author: "v4.0 - by Attila Gal", searchLabel: "Search:", refreshBtn: "REFRESH", adminTitle: "Administration", adminMsg: "Edit passwords (DD/MM/YYYY format):", saveBtn: "SAVE TO GIST", syncing: "Syncing...", pickedPrefix: "Code for " }
     };
 
     let currentLang = localStorage.getItem('vj_lang') || 'hu';
@@ -323,6 +324,7 @@
         }
 
         if (success) {
+            failedAttempts = 0;
             localStorage.setItem('vj_pass_cache', pass);
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-panel').style.display = isAdmin ? 'block' : 'none';
@@ -330,7 +332,11 @@
             fetchData();
             applyLanguage();
         } else {
+            failedAttempts++;
             document.getElementById('login-error').style.display = 'block';
+            if (failedAttempts >= 5) {
+                document.getElementById('setup-trigger').style.display = 'block';
+            }
         }
     }
 
@@ -420,10 +426,17 @@
         const todayStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
         document.getElementById('today-date').innerText = now.toLocaleDateString(currentLang === 'hu' ? 'hu-HU' : 'en-US');
         document.getElementById('today-pwd').innerText = extractPwd(plain, todayStr) || "---";
+
         const picker = document.getElementById('date-picker').value;
+        const pickedDisplay = document.getElementById('picked-pwd');
         if (picker) {
             const p = picker.split('-');
-            document.getElementById('picked-pwd').innerText = extractPwd(plain, `${p[2]}/${p[1]}/${p[0]}`) || "---";
+            const pickedDate = new Date(p[0], p[1]-1, p[2]);
+            const formattedDate = pickedDate.toLocaleDateString(currentLang === 'hu' ? 'hu-HU' : 'en-US');
+            const pwd = extractPwd(plain, `${p[2]}/${p[1]}/${p[0]}`) || "---";
+            pickedDisplay.innerHTML = `<div style="font-size:12px; color:#888;">${langData[currentLang].pickedPrefix}${formattedDate}</div><div>${pwd}</div>`;
+        } else {
+            pickedDisplay.innerText = "---";
         }
     }
 
@@ -431,7 +444,9 @@
         let idx = content.indexOf(date);
         if (idx === -1) {
             const p = date.split("/");
-            idx = content.indexOf(`${p[1]}/${p[0]}/${p[2]}`);
+            if (p.length === 3) {
+                idx = content.indexOf(`${p[1]}/${p[0]}/${p[2]}`); // handle potential MM/DD swap
+            }
         }
         if (idx === -1) return null;
         const m = content.substring(idx + 10, idx + 115).match(/(\d{6})/);
@@ -457,7 +472,9 @@
 
     window.onload = () => {
         applyLanguage();
-        if (!CONFIG_A) document.getElementById('setup-trigger').style.display = 'block';
+        if (!CONFIG_A || CONFIG_A === '') {
+            document.getElementById('setup-trigger').style.display = 'block';
+        }
         const cached = localStorage.getItem('vj_pass_cache');
         if (cached) { document.getElementById('app-password').value = cached; login(); }
     };
