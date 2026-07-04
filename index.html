@@ -269,8 +269,8 @@
     let failedAttempts = 0;
 
     const langData = {
-        hu: { btn: "EN", loginTitle: "Belépés", loginBtn: "BELÉPÉS", title: "VJ1000 napi jelszó", author: "v4.0 - Gál Attila", searchLabel: "Keresés:", refreshBtn: "FRISSÍTÉS", adminTitle: "Adminisztráció", adminMsg: "Jelszavak szerkesztése (DD/MM/YYYY formátum):", saveBtn: "MENTÉS A GIST-RE", syncing: "Szinkronizálás...", pickedPrefix: "" },
-        en: { btn: "HU", loginTitle: "Login", loginBtn: "LOGIN", title: "VJ1000 daily codes", author: "v4.0 - by Attila Gal", searchLabel: "Search:", refreshBtn: "REFRESH", adminTitle: "Administration", adminMsg: "Edit passwords (DD/MM/YYYY format):", saveBtn: "SAVE TO GIST", syncing: "Syncing...", pickedPrefix: "Code for " }
+        hu: { btn: "EN", loginTitle: "Belépés", loginBtn: "BELÉPÉS", title: "VJ1000 napi jelszó", author: "v4.0 - Gál Attila", searchLabel: "Keresés:", refreshBtn: "FRISSÍTÉS", adminTitle: "Adminisztráció", adminMsg: "Jelszavak szerkesztése (DD/MM/YYYY formátum):", saveBtn: "MENTÉS A GIST-RE", syncing: "Szinkronizálás...", error: "Hibás jelszó!", noData: "Nincs adat", pickedPrefix: "" },
+        en: { btn: "HU", loginTitle: "Login", loginBtn: "LOGIN", title: "VJ1000 daily codes", author: "v4.0 - by Attila Gal", searchLabel: "Search:", refreshBtn: "REFRESH", adminTitle: "Administration", adminMsg: "Edit passwords (DD/MM/YYYY format):", saveBtn: "SAVE TO GIST", syncing: "Syncing...", error: "Wrong password!", noData: "No data", pickedPrefix: "Code for " }
     };
 
     let currentLang = localStorage.getItem('vj_lang') || 'hu';
@@ -281,6 +281,7 @@
         document.getElementById('lang-btn').innerText = d.btn;
         document.getElementById('ui-login-title').innerText = d.loginTitle;
         document.getElementById('ui-login-btn').innerText = d.loginBtn;
+        document.getElementById('login-error').innerText = d.error;
         document.getElementById('ui-title').innerText = d.title;
         document.getElementById('ui-author').innerText = d.author;
         document.getElementById('ui-search-label').innerText = d.searchLabel;
@@ -425,7 +426,7 @@
         const now = new Date();
         const todayStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
         document.getElementById('today-date').innerText = now.toLocaleDateString(currentLang === 'hu' ? 'hu-HU' : 'en-US');
-        document.getElementById('today-pwd').innerText = extractPwd(plain, todayStr) || "---";
+        document.getElementById('today-pwd').innerText = extractPwd(plain, todayStr) || langData[currentLang].noData;
 
         const picker = document.getElementById('date-picker').value;
         const pickedDisplay = document.getElementById('picked-pwd');
@@ -433,10 +434,10 @@
             const p = picker.split('-');
             const pickedDate = new Date(p[0], p[1]-1, p[2]);
             const formattedDate = pickedDate.toLocaleDateString(currentLang === 'hu' ? 'hu-HU' : 'en-US');
-            const pwd = extractPwd(plain, `${p[2]}/${p[1]}/${p[0]}`) || "---";
+            const pwd = extractPwd(plain, `${p[2]}/${p[1]}/${p[0]}`) || langData[currentLang].noData;
             pickedDisplay.innerHTML = `<div style="font-size:12px; color:#888;">${langData[currentLang].pickedPrefix}${formattedDate}</div><div>${pwd}</div>`;
         } else {
-            pickedDisplay.innerText = "---";
+            pickedDisplay.innerText = langData[currentLang].noData;
         }
     }
 
